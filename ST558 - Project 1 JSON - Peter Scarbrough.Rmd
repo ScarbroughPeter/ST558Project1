@@ -1,0 +1,256 @@
+---
+title: ST558 - Project 1 - JSON Vignette
+author: Peter Scarbrough
+date: October 10, 2019
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+*This vignette is designed to introduce the JSON file format and explore how to work with it in R.*
+
+# JSON File Format  
+
+The [JSON](https://en.wikipedia.org/wiki/JSON) file format was first created by [Douglas Crockford](https://en.wikipedia.org/wiki/Douglas_Crockford) in the early 2000s using [Javascript](https://en.wikipedia.org/wiki/JavaScript). Eventually the file format became a standardized Javascript object and given Javascript's position as the *de facto* official scripting language of the internet, it wasn't long before JSON became one of the most widely used formats for sharing data by websites and APIs (e.g. [Twitter API](https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json)). As a result, by now most programming languages have packages that allow the reading and creation of JSON files.  
+
+The JSON is a hierarchical data format that may be used as an alternative to [XML](https://en.wikipedia.org/wiki/XML). In this format, data are stored with key-value pairs using [strong typing](https://en.wikipedia.org/wiki/Strong_and_weak_typing). Strong typing basically means the variables are defined as having a type (e.g. integer, character) and once they are defined with a type they keep that type. The key-value pairing is just a convenient and intuitive use of syntax to define the values for a variable. These features of JSON contrast with the XML file format which defines data using tags and employs weak-typing.
+
+Example:
+
+```{r eval=F} 
+{  
+  {  
+    "name": "Darth Vader"  
+    "age" : 60  
+    "occupation": "Sith Lord"  
+  },  
+  {  
+    "name": Luke Skywalker"  
+    "age": 40  
+    "occupation": "Jedi Master"  
+  }  
+} 
+```
+
+Now, this kind of structure could easily be coerced down to a 2-dimensional data set. However, this format doesn't reflect how flexible JSON really is, particularly how it takes advantage of its hierarchical structuring. The JSON data can contain key-value pairs that point to new arrays or new lists instead of a simple atomic element. These can no longer be coerced as nicely into a 2-dimensional data set!
+
+Example:  
+
+```{r eval=F} 
+{  
+  "name": "Darth Vader"  
+  "age": 60  
+  "occupation": "Sith Lord"  
+  "episodes": [3, 4, 5, 6]  
+  "relationships": [  
+      "Luke Skywalker": "Son",  
+      "Leia Organa": "Daughter"  
+  ]  
+}  
+```
+
+Dealing with this hierarchical structure of data is probably the most challenging thing when working with file formats like JSON or XML. Fortunately, there are packages in R that can help simplify this task for us. Although there is no way for R to automatically generate tidy datasets when reading JSON data, if we inspect the JSON structure we can recognize that the structures are already analogous to R objects we are already familiar with: data.frames, arrays, and lists. The people who have designed the main JSON packages in R have recognized these features as well, which is why JSON files will typically get coerced down to a 2D data frame that can contain columns of atmoic elements, arrays, and lists. From there, we can use our knowledge of these R objects to manipulate, tidy, and analyze the data as we require.
+
+# JSON Packages in R
+
+There are 3 main packages for reading JSON files in R.
+
+1) [rjson](https://cran.r-project.org/web/packages/rjson/rjson.pdf)  
+2) [RJSONIO](https://cran.r-project.org/web/packages/RJSONIO/RJSONIO.pdf)  
+3) [jsonlite](https://rdocumentation.org/packages/jsonlite/versions/1.6)  
+
+All packages are reasonably similar in terms of their main goal: They will attempt to open and parse a JSON file into the relevant R objects. All packages will attempt to simplify the objects they are given into the simplest and most appropriate R object. The packages mostly differ in the details of this implementation and with respect to other features that they offer.
+
+In general `rjson` are `RJSONIO` are theoretically more light-weight than `jsonlite`, they have fewer features but can sometimes have the advantage of speed and simplicity. `RJSONIO` differs from `rjson` in that it uses the C++ library, `libjson`, to parse JSON files, instead of parsing with R code, which gives it a potential advantage in speed. 
+
+The `jsonlite` package was originally developed as a fork from `RJSONIO` to add additional features. However, since then it has been rewritten significantly. This has allowed it to accrue more features: interfacing with APIs, compatibility with `tidyverse` pipelines, ability to read streaming JSON data, along with greater capacity to check for data type errors, better handling of missing data, and better routines to handle JSON simplification and nested data frame flattening.
+
+Of course, along with all of these features comes additional overhead and so `jsonlite` tends to be a little bit slower with the upside that reading and writing JSON files will be a bit easier and more intuitive. As a result of this, since speed isn't considered to be a major issue in this vignette, I have selected to use the `jsonlite` package to try to have an easier time reading and parsing the data in the following example.
+
+## Key functions in `jsonlite`
+
+The `jsonlite` package contains a number of internal functions that are mostly intended for internal use - one can consult the [documentation](https://www.rdocumentation.org/packages/jsonlite/versions/1.6) for more information. Otherwise, most users should probably need only concern themselves with the following key functions:  
+
+1. <u>`fromJSON`</u>: Reads JSON data from file path or character string, automatically converting and simplifying to an R object    
+2. <u>`toJSON`</u>: Converts R object to JSON object  
+3. <u>`read_json`</u>: Same as `fromJSON` except only accepts file path and does not simplify by default    
+4. <u>`write_json`</u>: Same as `toJSON` except only accepts file path and does not simplify by default   
+5. <u>`stream_in`</u>: Accepts a *file connection* (e.g. file("filename")) as an argument. Necessary for reading in streaming JSON data and end-line delimited JSON (NDJSON) file formats.
+
+# Example JSON Data Set
+
+I will download the following data set to further explore JSON file formats and data analysis in R. This data was chosen as an example JSON format because it is relatively easy to understand in concept and because it's structure is fairly simply to get started. As far as JSON data goes, it's fairly simple: containing mostly atomic vectors of categorical and quantitative data with nested data structures in only a few columns.
+
+## Metadata
+
+<u>Data</u>: **GOG Games with Reviews**   
+<u>Filename</u>: "games.json"  
+<u>Repository</u>: [kaggle](https://www.kaggle.com)  
+<u>URL</u>: [https://www.kaggle.com/beastovest/gog-games-with-reviews](https://www.kaggle.com/beastovest/gog-games-with-reviews)   
+<u>Download Date</u>: October 10, 2019  
+<u>Description</u>: This data set is a collection of player and critic review data for computer video games (along with meta information about these games) from the website: www.gog.com. [GOG](https://www.gog.com) is a website where people can purchase and download computer games from a variety genres and publishers. Their catelog of video games spans many hundreds of titles released over the last few decades.  
+<u>Dimensinos</u>: 2742 rows, 23 columns  
+
+## Variables
+
+Label | Variable Name | Description | Type 
+-----|-----|-----|-----
+URL | url | Games' website on GOG.com | character
+Name | name | Name of Game | character
+Price in USD | price | Price of Game | double
+Player Rating | player_rating | Player Rating as Score | double
+Genres | genres | Genres Applicable to Game | 1 item list: character array
+Operation Systems | oses | OS Compatible with Game | 1 item list: character array
+Size | size | Hard Drive Space of Game | character
+Rating | rating | Maturity Rating of Game (PEGI Scores) | character
+Release Date| release_date | Game Release Date | character
+Developer | developer | Developer | character
+Publisher | publisher | Publisher | character
+Cloud Saves | cloud_saves | Has Cloud Saves | logical
+Controller Support | controller_support | Has Controller Support | logical
+Overlay | overlay | Has GOG Overlay | logical
+Single Player | single_player | Is Single Player | logical
+Achievement | achievement | Has achievements | logical
+Multiplayer | multi_player | Is Multiplayer | logical
+Coop | coop | Has Co-op | logical
+Leaderboard | leaderboard | Has Leaderboard | logical
+In Development | in_development | In Development | logical
+Languages | languages | Supported Languages | 3 item data frame  
+Achievements | achievements | Achievements In Game | 3 item data frame
+Reviews | reviews | Player Reviews | 8 item data frame  
+
+### Languages
+
+Label | Variable Name | Description | Type 
+-----|-----|-----|-----
+Name | name | Name of Language | character
+Text | text | Text is translated | logical
+Audio | audio | Audio is translated | logical
+
+### Achievements
+
+Label | Variable Name | Description | Type 
+-----|-----|-----|-----
+Name | name | Name of Achievement | character
+Description | description | Description of Achievement | character
+Rarity | rarity | Rarity of Achievement | double
+
+### Reviews   
+
+Label | Variable Name | Description | Type 
+-----|-----|-----|-----
+Name | name | Name of Reviewer | character
+Count | count | Count | double 
+Reivews Count | reviews_count | # of Reviews by Reviewer | double
+Verified Owner | verified_ower | Verified Owner of Game | logical
+Rating | rating | Rating of Game (1 poor - 5 good) | double
+Creation Date | creation_date | Date Review was Made | character
+Title | title | Title of Review | character
+Content | content | Full Text Review | character
+
+## Loading the Data
+
+```{r load.packages, message=F, warning=F}
+# load required packages
+library(tidyverse)
+library(knitr)
+```
+
+```{r set.env, include=F}
+# set global r markdown options
+opts_chunk$set(results="hold", message=F, warning=F)
+```
+
+```{r load.data}
+# Load required packages
+library(jsonlite)
+
+# Load Data
+myData <- fromJSON("games.json", flatten=T)
+
+# Getting names and column size
+sapply(myData, function(x) format(object.size(x), units="Mb"))
+```
+
+# Analysis of JSON Data
+
+As we can see, the JSON data is far from tidy, containing various nested data structures. It would be possible to tidy the entire dataset, but we will consider our analysis goals first in order to determine exactly what data we need to tidy, in order to make sure we don't waste our time.
+
+## Analysis Goals
+
+Determine how player ratings change as a function of genre, price, publisher, and whether the game is single or multiplayer. In particular there is interest in constructing some multivariate plots to look at possible interactions bewteen genre and price, genre and publisher, and genre, publisher, and number of players the game allows.
+
+## Implementation strategy
+
+First, I will remove all variables that are not of interest from the data set. Next, I will need to pull out genre data from the nested JSON structure and convert it into a tidy data frame. There are also probably too many genres to consider for a preliminary analysis, so I will restrict to only the top gaming genres. I will construct a custom function to do this and generate new variables. Following this, I will then use a traditional `tidyverse` pipeline structure and `ggplot2` to construct the multivariate plots and use these to make some preliminary inferences on the trends I observe.
+
+```{r work}
+# ***trim data***
+# keep only relevant columns
+myData <- myData %>%
+  select(player_rating, genres, price, publisher, single_player, multi_player)
+
+# ***tidy data***
+# (i) create custom function to parse nested simple list data into logical columns
+#     arguments:
+#       - data = data frame
+#       - simpleListCol = name of column that contains nested 
+#                         lists of length one (char arrays)
+#       - prefix = specify prefix to give when creating new column names
+tidySimpleList <- function(data, simpleListCol, prefix=""){
+  # (iia) get unique column names from parsed nested simple list
+  uniqueNames <- unique(unlist(data[[simpleListCol]]))
+  newVarNames <- paste0(prefix, uniqueNames)
+
+  # (iib) add unique columns to data set
+  for(j in varNames){
+    data[[j]] <- logical(nrow(data))
+  }
+ 
+  # (iic) populate new columns (parse nested list data)
+  for(i in 1:nrow(data)){
+    listContents <- unlist(data[[simpleListCol]][i])  # parse nested data
+    changeCols   <- paste0(prefix, listContents)      # use to generate col names
+    for(j in changeCols){
+      data[[j]][i] <- TRUE                            # change ith row of col name to TRUE
+    }  
+  }
+  
+  return(data)
+}
+# (iii) use custom function to tidy genre data
+myData <- tidySimpleList(myData, "genres", prefix="genre")
+
+# *** More Data Trimming ***
+# (i) remove nested data (genre column)
+myData <- select(myData, -genres)
+# (ii) remove genre columns not in top 5
+# (iia) get genre sums
+genreSums <- myData %>% 
+  select(contains("genre")) %>% 
+  colSums() %>%
+  as.data.frame()
+# (iib) add genre cols, arrange by counts, select top genres
+genreSums$genre     <- rownames(genreSums)
+rownames(genreSums) <- NULL
+names(genreSums)[1] <- "count"
+genreSums <- arrange(genreSums, desc(count))
+print(head(genreSums)) # print to check temporary result
+topGenres <- genreSums$genre[1:5]
+bottomGenres <- genreSums$genre[6:nrow(genreSums)]
+# (iic) remove bottom genre columns
+myData <- myData %>% 
+  select(-bottomGenres)
+# (iid) remove games (rows) not within top 5 genres
+myData <- myData %>%
+  mutate(top5Sums = rowSums(myData[,6:10])) %>%
+  filter(top5Sums > 0) %>%
+  select(-top5Sums)
+
+# ***clean data*** 
+# remove missing (-1) price and rating data
+myData <- myData %>%
+  filter(player_rating != -1 & price != -1)
+```
+
