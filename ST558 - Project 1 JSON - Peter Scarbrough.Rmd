@@ -60,13 +60,11 @@ There are 3 main packages for reading JSON files in R.
 2) [RJSONIO](https://cran.r-project.org/web/packages/RJSONIO/RJSONIO.pdf)  
 3) [jsonlite](https://rdocumentation.org/packages/jsonlite/versions/1.6)  
 
-All packages are reasonably similar in terms of their main goal: They will attempt to open and parse a JSON file into the relevant R objects. All packages will attempt to simplify the objects they are given into the simplest and most appropriate R object. The packages mostly differ in the details of this implementation and with respect to other features that they offer.
+All packages will attempt to open and parse a JSON file into the relevant R objects. All packages will attempt to simplify the objects they are given into the simplest and most appropriate R object. The packages mostly differ in the details of this implementation and with respect to other features that they offer.
 
-In general `rjson` are `RJSONIO` are theoretically more light-weight than `jsonlite`, they have fewer features but can sometimes have the advantage of speed and simplicity. `RJSONIO` differs from `rjson` in that it uses the C++ library, `libjson`, to parse JSON files, instead of parsing with R code, which gives it a potential advantage in speed. 
+In general `rjson` are `RJSONIO` are theoretically more light-weight than `jsonlite`, they have fewer features but  sometimes have the advantage of speed and simplicity. `RJSONIO` differs from `rjson` in that it uses the C++ library, `libjson`, to parse JSON files, instead of parsing with R code, which gives it a potential advantage in speed. 
 
-The `jsonlite` package was originally developed as a fork from `RJSONIO` to add additional features. However, since then it has been rewritten significantly. This has allowed it to accrue more features: interfacing with APIs, compatibility with `tidyverse` pipelines, ability to read streaming JSON data, along with greater capacity to check for data type errors, better handling of missing data, and better routines to handle JSON simplification and nested data frame flattening.
-
-Of course, along with all of these features comes additional overhead and so `jsonlite` tends to be a little bit slower with the upside that reading and writing JSON files will be a bit easier and more intuitive. As a result of this, since speed isn't considered to be a major issue in this vignette, I have selected to use the `jsonlite` package to try to have an easier time reading and parsing the data in the following example.
+The `jsonlite` package was originally developed as a fork from `RJSONIO` to add additional features such as interfacing with APIs, compatibility with `tidyverse` pipelines, ability to read streaming JSON data, along with greater capacity to check for data type errors, better handling of missing data, and better routines to handle JSON simplification and nested data frame flattening. Of course, along with all of these features comes additional overhead and so `jsonlite` tends to be a little bit slower with the upside that reading and writing JSON files will be a bit easier and more intuitive. *Since I am valuing features and accuracy over speed, I have chosen to use `jsonlite` in the following example.*
 
 ## Key functions in `jsonlite`
 
@@ -96,13 +94,13 @@ I will download the following data set to further explore JSON file formats and 
 
 Label | Variable Name | Description | Type 
 -----|-----|-----|-----
-URL | url | Games' website on GOG.com | character
+URL | url | Game website on GOG.com | character
 Name | name | Name of Game | character
 Price in USD | price | Price of Game | double
-Player Rating | player_rating | Player Rating as Score | double
+Player Rating | player_rating | Average Player Rating (1-5) | double
 Genres | genres | Genres Applicable to Game | 1 item list: character array
 Operation Systems | oses | OS Compatible with Game | 1 item list: character array
-Size | size | Hard Drive Space of Game | character
+Size | size | Hard Drive Space | character
 Rating | rating | Maturity Rating of Game (PEGI Scores) | character
 Release Date| release_date | Game Release Date | character
 Developer | developer | Developer | character
@@ -151,39 +149,60 @@ Content | content | Full Text Review | character
 
 ## Loading the Data
 
-```{r load.packages, message=F, warning=F}
-# load required packages
-library(tidyverse)
-library(knitr)
-```
+The data will be loaded using the `fromJSON` function from the `jsonlite` package. This function uses the same read-in function name as `rjson` and `RJSONIO` which allows users to more easily reuse code even if they are switching packages. The function contains the required argument `txt` which must specify either raw JSON text or a path to a JSON file. The `fromJSON` function also offers more *features* that the `read_json` function which allow for control over how the JSON object is simplified: 
 
-```{r set.env, include=F}
-# set global r markdown options
-opts_chunk$set(results="hold", message=F, warning=F)
-```
+### Key Features   
 
-```{r load.data}
+Feature | Default | Description
+-----|-----|-----
+simplifyVector | TRUE | Simplifies JSON primative-only arrays to an atomic vector
+simplifyDataFrame | TRUE | Simplifies JSON-only-objects to a data frame
+simplifyMatrix | TRUE | Simplifies JSON equal mode and dimension arrays to matrix
+flatten | FALSE | Automatically flattens nested data frames to non-nested
+
+Without these simplifications, the returned JSON object will essentially contain more objects wrapped in lists that the user will then have to manually unwrap with code. Therefore, it is a good idea to accept the default simplification arguments. The flatten argument is set to `FALSE` by default basically because automating the process causes more possible room for errors. In general, it is best to load a minimally modified object and figure out what the structure is and then simplify from that. Fortunately, the arguments in the `fromJSON` file are reasonably safe assumptions which is why it's okay to generally accept the default arguments. 
+
+### Using `fromJSON`
+
+```{r load.data, message=F, warning=F}
 # Load required packages
-library(jsonlite)
+library(tidyverse)  # for data manipulation
+library(knitr)      # for r markdown functions
+library(jsonlite)   # for JSON file
+
+# setting global r markdown options
+opts_chunk$set(message=F, warning=F)
 
 # Load Data
-myData <- fromJSON("games.json", flatten=T)
+myData <- fromJSON("games.json")
+```
+
+### Checking Structure
+
+Now that the data is loaded, it's a good idea to check the structure of the data to make sure it loaded correctly and looks like how we expect.
+
+```{r check structure}
+# Get structure of data
+for(i in 1:ncol(myData)) str(myData[[i]], list.len=3)
 
 # Getting names and column size
 sapply(myData, function(x) format(object.size(x), units="Mb"))
 ```
 
+As we can see, the data appear to have loaded correctly and seem to contain expected information. As expected, the JSON data is far from tidy, containing various nested data structures. It would be possible to tidy the entire dataset, but we will consider our analysis goals first in order to determine exactly what data we need to tidy, in order to make sure we don't waste our time.
+
 # Analysis of JSON Data
 
-As we can see, the JSON data is far from tidy, containing various nested data structures. It would be possible to tidy the entire dataset, but we will consider our analysis goals first in order to determine exactly what data we need to tidy, in order to make sure we don't waste our time.
+*Note: For the purpose of this analysis `price` and `player_rating` will be treated as quantitative variables and all other variables will be considered as categorical variables.*
 
 ## Analysis Goals
 
 Determine how player ratings change as a function of genre, price, publisher, and whether the game is single or multiplayer. In particular there is interest in constructing some multivariate plots to look at possible interactions bewteen genre and price, genre and publisher, and genre, publisher, and number of players the game allows.
 
-## Implementation strategy
+## Preparing the data
 
-First, I will remove all variables that are not of interest from the data set. Next, I will need to pull out genre data from the nested JSON structure and convert it into a tidy data frame. There are also probably too many genres to consider for a preliminary analysis, so I will restrict to only the top gaming genres. I will construct a custom function to do this and generate new variables. Following this, I will then use a traditional `tidyverse` pipeline structure and `ggplot2` to construct the multivariate plots and use these to make some preliminary inferences on the trends I observe.
+First, I will remove all variables that are not of interest from the data set. Next, I will need to pull out genre data from the nested JSON structure and convert it into a tidy data frame. There are also probably too many genres to consider for a preliminary analysis, so I will restrict to only the top 5 gaming genres. I will construct a custom function to do this and generate new variables. Then I will limit to only the top 15 publishers. Following this, I will then use a traditional `tidyverse` pipeline structure and `ggplot2` to construct the multivariate plots and use these to make some preliminary inferences on the trends I observe.
+
 
 ```{r work}
 # ***trim data***
@@ -204,7 +223,7 @@ tidySimpleList <- function(data, simpleListCol, prefix=""){
   newVarNames <- paste0(prefix, uniqueNames)
 
   # (iib) add unique columns to data set
-  for(j in varNames){
+  for(j in newVarNames){
     data[[j]] <- logical(nrow(data))
   }
  
@@ -219,12 +238,14 @@ tidySimpleList <- function(data, simpleListCol, prefix=""){
   
   return(data)
 }
+
 # (iii) use custom function to tidy genre data
 myData <- tidySimpleList(myData, "genres", prefix="genre")
 
 # *** More Data Trimming ***
 # (i) remove nested data (genre column)
 myData <- select(myData, -genres)
+
 # (ii) remove genre columns not in top 5
 # (iia) get genre sums
 genreSums <- myData %>% 
@@ -236,7 +257,7 @@ genreSums$genre     <- rownames(genreSums)
 rownames(genreSums) <- NULL
 names(genreSums)[1] <- "count"
 genreSums <- arrange(genreSums, desc(count))
-print(head(genreSums)) # print to check temporary result
+print(head(genreSums)) # printing top genres to check temporary result
 topGenres <- genreSums$genre[1:5]
 bottomGenres <- genreSums$genre[6:nrow(genreSums)]
 # (iic) remove bottom genre columns
@@ -248,9 +269,209 @@ myData <- myData %>%
   filter(top5Sums > 0) %>%
   select(-top5Sums)
 
+# (iii) remove all but top 15 publishers
+# (iiia) get counts of game by publisher
+publisherCounts <- as.data.frame(table(myData$publisher)) %>% arrange(desc(Freq))
+# (iiib) get array of top and bottom publishers
+topPubs <- publisherCounts$Var1[1:15]
+botPubs <- publisherCounts$Var1[16:length(publisherCounts)]
+# (iiic) remove bottom publishers from data
+myData <- filter(myData, publisher %in% botPubs)
+
 # ***clean data*** 
 # remove missing (-1) price and rating data
 myData <- myData %>%
   filter(player_rating != -1 & price != -1)
 ```
 
+## Exploratory Data Analysis  
+
+As a first step in exploratory data analysis, now that the data are of manageable size and scope to be printed in this document, the header portion of the data will be printed so that the data can be manually inspected.
+
+```{r print.data}
+# print data (now that it is of reasonable size and structure)
+library(DT)
+datatable(head(myData))
+```
+
+Next, before beginning the analysis, an exploratory data analysis will be performed to check the single variable distributions and properties of the variables of interest in the data set in order to help validate the data and check for errors or other potentially interesting features of interest. 
+
+### Quantitative Variables
+
+```{r exp.data}
+
+# (i) getting numerical summaries of data
+# (ia) price
+summary(myData$price) %>% 
+  t() %>%
+  as.data.frame() %>% 
+  mutate(Value=round(Freq,2)) %>%
+  select(-Var1,-Freq) %>%
+  rename("Price"=Var2) %>%
+  kable()
+# (ib) player_rating
+summary(myData$player_rating) %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(Value=round(Freq,2)) %>%
+  select(-Var1,-Freq) %>%
+  rename("Player Rating"=Var2) %>%
+  kable()
+
+# assessing single variable features, distributions
+# (ii) exploratory analysis - variables treated as quantitative
+# (iia) price
+ggplot(myData, aes(x=price)) + 
+  geom_histogram(color="black", fill="green") + 
+  labs(title="Histogram of Price",
+       x="Price",
+       y="Count")
+# (iib) player_rating
+ggplot(myData, aes(player_rating)) + 
+  geom_histogram(color="black", fill="blue") + 
+  labs(title="Histogram of Average Player Ratings",
+       x="Average Player Rating",
+       y="Count")
+```
+
+From these data we find that is a large variation in price and player rating. Player rating seems to be more of a skewed normal distribution, that price data, which appear multi-modal. On inspection, both of these features appear to make sense. Pricing should have certain expected price points for games that likely occur more frequently than others. Player rating will also have floor and ceiling effects due to the limits in scale (1-5) within the rating.
+
+### Categorical Variables
+
+```{r exp.data2}
+# (ii) exploratory analysis - variables treated as categorical
+# (iia) table, counts by genre
+library(stringr)
+genreNames <- str_remove(topGenres, "genre")
+sapply(topGenres, function(Count) sum(myData[[Count]])) %>%
+  as.data.frame() %>%
+  mutate(Genre=genreNames) %>%
+  rename(Count=".") %>%
+  select(Genre, Count) %>%
+  kable()
+
+# (iib) table, counts by publisher
+table(myData$publisher) %>% 
+  as.data.frame() %>%
+  rename(Publisher=Var1, Count=Freq) %>%
+  arrange(desc(Count)) %>%
+  kable()
+
+# (iii) contingency table, genre x publisher
+res <- sapply(topGenres, FUN=function(x){
+         tapply(myData[[x]], myData$publisher, sum)
+         }) %>%
+       as.data.frame()
+names(res) <- genreNames
+kable(res)
+
+# (iv) rework table of counts for plotting
+res$Publisher <- rownames(res)
+rownames(res) <- NULL
+res           <- gather(res, names(res)[1]:names(res)[length(res)-1],
+                        key="Genre",
+                        value="Count")
+
+
+# (v) side-by-side bar plots - genre x publisher
+ggplot(res, aes(x=Genre)) + 
+  geom_bar(aes(y=Count), color="black", fill="green", stat="identity") + 
+  facet_wrap(~Publisher) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  labs(title="Count of Genre by Publisher")
+```
+
+From these data we observe that top publishers tend to have reasonably diversified catelogs of game portfolios (appealing to multiple different genres), which makes sense given probable business needs. However, publishers appear to have specializations and differing distributions overall which suggests possible concern for confounding when attempting to relate player rating to either publisher or genre alone. 
+
+## Analysis: Interactions with Player Rating
+
+Since we are primarily interested in player rating as a response variable, the following breakdowns were made by player_rating to examine what kinds of direct effects on player rating may exist in the data set. To get 2-way data for the genre variable (currently spread out across logical columns), I will create a custom function, which returns the relevant data frame.
+
+```{r helper.function}
+# will lengthen data by colNames key only if TRUE using targetCol values
+longFromLogicals <- function(data, colNames, targetCols, key="key"){
+  # initialize empty data frame
+  dfResult          <- data.frame()
+  dfResult[[key]]   <- character()
+  for(col in targetCols){
+    dfResult[[col]] <- numeric()
+  }
+  
+  # by row, by logical column,
+  #   if true: get value from targetCol, lengthen dfResult
+  #   else: pass
+  for(i in 1:nrow(data)){
+    for(j in colNames){
+      if(data[[j]][i]){
+        tempList          <- list()
+        tempList[[key]]   <- j
+        for(col in targetCols){
+          tempList[[col]] <- data[[col]][i] 
+        }
+        dfResult <- rbind.data.frame(dfResult, tempList, stringsAsFactors=F)
+      }
+    }
+  }
+  
+  # return result
+  dfResult
+}
+```
+
+```{r player.rating.interactions}
+# (i) box_plots: player rating by publisher
+ggplot(myData, aes(x=publisher, y=player_rating)) + 
+  geom_boxplot() + 
+  labs(title="Box Plot of Average Player Rating by Publisher",
+       x = "Publisher",
+       y = "Average Player Rating") +
+   theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+# (ii) box_plots: player rating by genre
+# note: observations have dependencies -- interpret with caution
+ratingGenre <- longFromLogicals(myData, topGenres, "player_rating", key="genre")
+ggplot(ratingGenre, aes(x=as.factor(genre), y=player_rating)) + 
+  geom_boxplot(color="black", fill="blue") + 
+  labs(title="Box Plot of Average Player Rating by Genre",
+       x="Genre",
+       y="Average Player Rating") + 
+  scale_x_discrete(labels=genreNames)
+
+# (iii) box_plots: price by genre
+# note: observations have dependencies -- interpret with caution
+priceGenre <- longFromLogicals(myData, topGenres, "price", key="genre")
+ggplot(priceGenre, aes(as.factor(genre), y=price)) + 
+  geom_boxplot(color="black", fill="green") + 
+  labs(title="Box Plot of Price by Genre",
+       x="Genre",
+       y="Price") + 
+  scale_x_discrete(labels=genreNames)
+
+
+# (iv) scatterplot: of price x player_rating by (color) publisher
+ggplot(myData, aes(x=player_rating, y=price)) + 
+  geom_point(alpha=0.5) +
+  geom_smooth(aes(group=publisher)) + 
+  facet_wrap(~publisher) +
+  labs(title="Scatterplot of Player Rating by Price by Publisher",
+       x="Average Player Rating",
+       y="Price")
+  
+
+# (v) scatterplot: of price x player_rating by (panel/color) genre
+priceRatingGenre <- longFromLogicals(myData, topGenres, c("price", "player_rating"), key="genre")
+ggplot(priceRatingGenre, aes(x=player_rating, y=price)) + 
+  geom_point(aes(color=as.factor(genre)), alpha=0.3) + 
+  labs(title="Scatterplot of Player Rating by Price by Genre",
+       x="Average Player Rating",
+       y="Price") + 
+  scale_color_discrete(name="Genre",
+                       labels=genreNames)
+
+```
+
+# Discussion
+
+Player ratings showed minimal variation by genre and greater variation by publisher, suggesting that the publisher and potentially developer behind a game may be more important to player ratings than the genre *per se*. Interestingly, the most variability in pairwise measurements was observed when player ratings were plotted against price in scatterplots. When the price by player ratings were compared across developers, there was little apparent effect, with fitted curves appearing to show a flat relationship among all publishers. However, larger variability was observed when comparing price versus player ratings by genre. 
+
+These results give insight into how potential future models may be able to predict player ratings. It appears that there could be an interaction effect between price, player rating, and genre and a separate direct effect between player rating and publisher. Some modeling could help to investigate these hypotheses further. As a more advanced exercise and future direction, one could extract the nested data frames in the review column of the data set and use keep track of individual review scores and use that information to control for the random effect of individuals in predicting review scores.
