@@ -9,18 +9,38 @@ output: html_document
 
 # XML File Format  
 
+[XML](https://en.wikipedia.org/wiki/XML) (eXtensible Markup Language) is a standardized open-source data standard for sharing arbitrary data structures across the internet. It was developed in 1998 by the [World Wide Web Consortium](https://en.wikipedia.org/wiki/World_Wide_Web_Consortium). An XML file is a string of text where data are stored weakly typed (all as character values) and referenced (marked up) by tags (i.e. values enclose by brackets: < >). Similar to a JSON file, while XML white space does not contain data information, a general aspiration is to use whitespace to structure the XML file such that it is human-readable. Example:  
 
+```{r eval=F}
+<Data>
+  <Person>
+    <Name>John Smith</Name>
+    <Phone>555-555-5555</Phone>
+  </Person>
+  <Person>
+    <Name>Jane Smith</Name>
+    <Phone>555-555-5555</Phone>
+  </Person>
+<Data>
+```
 
+XML files can represent something easily coerced into a 2D data set or they can be hierarchical, containing any amount of nested data structures. This makes them a convenient store of typical internet data but challenging to read and parse correctly. Because XML files are such a standard way of representing data, many API and sources of internet data will use the XML file format. There are many tutorials available on the web to learn more about XML: e.g. [w3schools.com](https://www.w3schools.com/xml/default.asp)
 
 # XML Packages in R
 
+There are two main packages for reading XML files: 
+
+1. [XML](https://cran.r-project.org/web/packages/XML/XML.pdf)  
+2. [xml2](https://cran.r-project.org/web/packages/xml2/xml2.pdf)   
+
+Both packages can accomplish the basic functions of reading and writing XML files. `XML` is no longer actively maintained but has a larger selection of functions (mostly for internal operations) to aid in flexible parsing of XML files. The `xml2` package is still actively maintained and has a more consistent and modern R syntax with a smaller and more intuitive array of functions, and better memory management. Because of this, I have elected to use the `xml2` package for the following example.
 
 ## Key functions in `XML package`
 
 
 
-
 # Example XML Data Set
+
 
 
 ## Metadata
@@ -31,23 +51,155 @@ output: html_document
 
 ## Loading the Data
 
+```{r load.data, warning=F, message=F}
+library(xml2)
+library(tidyverse) 
 
-### Key Features   
+# https://catalog.data.gov/dataset?metadata_type=non-geospatial&res_format=XML&_groups_limit=0&page=3
+# Dataset Address: https://catalog.data.gov/dataset/regents-exam-results
+# XML File Address: https://data.cityofnewyork.us/api/views/qk7d-gecv/rows.xml?accessType=DOWNLOAD
+# CSV File Address: https://data.cityofnewyork.us/api/views/qk7d-gecv/rows.csv?accessType=DOWNLOAD
 
+csvData <- read_csv("2005_-_2015_Graduation_Outcomes.csv")
 
-### Using `reading XML function`
+# download and read XML file
+download_xml("https://data.cityofnewyork.us/api/views/qk7d-gecv/rows.xml")
+xmlData <- read_xml("rows.xml")
+```
 
+## Identifying XML Data Structure
 
-### Checking Structure
+Since XML file structure is arbitrary there is no function that can automate all the aspects of XML file reading. Instead, XML packages tend to come equipped with tools that allow one to interrogate the tree structure of the XML file and then use that information to parse out the information that is needed.
 
+```{r id.structure}
+# identify XML structure
+# 1st level structure
+level1 <- xml_children(xmlData)
+length(level1)             # number of nodes in 1st level heirarchy
+xml_name(level1)           # names of nodes
+xml_length(level1)         # how many nodes are contained in each 1st level node
 
+# 2nd level structure
+level2 <- xml_children(level1)
+length(level2)             # number of nodes in 2nd level hierarchy
+xml_name(level2)[1]        # name of first node
+xml_length(level2)         # how many nodes are contained in each 2nd level node
 
+# 3rd level structure
+level3 <- xml_children(level2)
+length(level3)             # number of nodes in 3rd level hierarchy
+uniqueNames <- unique(xml_name(level3))  # unique names in 3rd level nodes
+uniqueNames                # the unique names of nodes in 3rd level nodes
+length(uniqueNames)        # how many unique names there are in 3rd level node
+sum(xml_length(level3))    # how many nodes there are to find after 3rd level nodes
+```
+
+From this we can work out that the XML file has 3 nested levels:
+
+* 1st level: Root node: Contains set of rows       
+* 2nd level: 430 Rows: Each contains either 22 or 16 nodes (columns) each     
+* 3rd level: 9400: Column data for each row  
+
+From this we can figure our data is essentially a 2D data set with 430 rows and 22 columns of data. Some rows only have 16 columns of data, which reflects missing data. Now that we understand the data structure we can begin parsing the XML file into a data frame. The arbitrary structure of XML can make it tricky to parse into a data frame directly; fortunately, R comes equipped with an arbitrary data structure of its own: the list. This makes it straight-forward to dump the XML data into a familiar R object and then work it into a data frame based on what has been learned about its structure. 
+
+```{r convert.to.df}
+# Convert XML data to list
+xmlList <- as_list(xmlData)
+
+# Subset to the row-level data
+xmlRows <- xmlList[[1]][[1]]
+
+# Get column names, row number
+myNames <- unique(unlist(sapply(xmlRows, function(x) names(x))))
+nRows   <- length(xmlRows)
+
+# initialize empty data frame
+myData <- data.frame()
+for(j in myNames) myData[[j]] <- character()
+
+# populate data frame with XML data
+for(row in 1:nRows){
+  tempList <- list()
+  # initialize temp list with missing data
+  for(name in myNames){
+    tempList[[name]] <- as.character(NA)
+  }
+  # fill with XML data if available
+  for(col in names(xmlRows[[row]])){
+    tempList[[col]] <- unlist(xmlRows[[row]][[col]])  
+  }
+  myData <- rbind(myData, tempList, stringsAsFactors=F)
+}
+
+# Print part of data frame for Q/C check
+library(DT)
+datatable(head(myData))
+```
+
+The data appear to ahve been parsed from the XML correctly. In the XML file, data are stored as characters, which is how they were read into the data frame. For the next step the data will be coerced into their correct types. To do this, I will create a custom function to detect data type and apply it to the data frame.
+
+```{r correct.data.types}
+# define custom function - detectFixType
+#   takes 1 argument - array of character data
+#   returns 1 argument - array of character or numeric data
+#   description: detects and sets col type (numeric vs chr)
+detectFixType <- function(a){
+   tryCatch(
+     {as.numeric(a)},
+     error=function(x){
+       return(as.character(a))
+       },
+     warning=function(x){
+       return(as.character(a))
+       },
+     finally=function(x){
+       return(as.numeric(a))
+     }
+     ) 
+}
+
+# corrects data types in data frame
+myData <- sapply(myData, detectFixType, simplify=F) %>% as.data.frame()
+
+# check data frame types
+sapply(myData, class)
+```
 
 # Analysis of XML Data
 
 ## Analysis Goals
 
 ## Preparing the data
+
+```{r preparing.data}
+# converting cohort category to numeric measure of length in cohort
+myData$cohort_length <- sapply(myData$cohort_category, FUN=function(x){
+  switch(as.character(x),
+         "4 Year  June"  = 4+(6/12),
+         "4 Year August" = 4+(8/12),
+         "5 Year  June"  = 5+(6/12),
+         "5 Year August" = 5+(8/12),
+         "6 Year"        = 6)
+  }
+)
+
+# keeping only variables of interest, convert to tibble
+myData <- myData %>%
+  select(cohort_year, cohort_length, demographic, total_cohort, 
+         total_grads, still_enrolled, dropped_out) %>% 
+  tbl_df()
+```
+
+Demographic data have overlapping categories, making it impossible to compare all the categories to each other simultaneously. It makes more sense to think of the demographic data separately into their complementary categories to the point where a natural next step is to segregate the different types of demographic data into separate, complementary data sets.
+
+```{r get.subdatasets}
+genderData <- filter(myData, demographic %in% c("Male", "Female"))
+raceData   <- filter(myData, demographic %in% c("Asian", "Black", "Hispanic", "white"))
+disData    <- filter(myData, demographic %in% c("Not Student with Disability",
+                                                "Student with Disability"))
+engData    <- filter(myData, demographic %in% c("English Language Learner",
+                                                "English Language Proficient"))
+```
 
 ## Exploratory Data Analysis  
 
