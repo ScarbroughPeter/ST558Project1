@@ -33,11 +33,46 @@ There are two main packages for reading XML files:
 1. [XML](https://cran.r-project.org/web/packages/XML/XML.pdf)  
 2. [xml2](https://cran.r-project.org/web/packages/xml2/xml2.pdf)   
 
-Both packages can accomplish the basic functions of reading and writing XML files. `XML` is no longer actively maintained but has a larger selection of functions (mostly for internal operations) to aid in flexible parsing of XML files. The `xml2` package is still actively maintained and has a more consistent and modern R syntax with a smaller and more intuitive array of functions, and better memory management. Because of this, I have elected to use the `xml2` package for the following example.
+Both packages can accomplish the basic functions of reading and writing XML files. `XML` is no longer actively maintained but has a larger selection of functions (mostly for internal operations) to aid in flexible parsing of XML files. The `xml2` package is still actively maintained and has a more consistent and modern R syntax with a smaller and more intuitive array of functions. It also has better memory management. Because of this, I have elected to use the `xml2` package for the following example.
 
-## Key functions in `XML package`
+Since XML file structure is arbitrary there is no function that can automate all the aspects of XML file reading and parsing. Instead, XML packages come equipped with tools that allow one to interrogate the tree structure of the XML file and then use that information to parse out the information that is needed. Correspondingly, `xml2` comes equipped with functions that are generally light on features, performing mostly basic tasks with 0-2 key options. Instead, the user should familiarize themselves with the number of key functions that will act as tools and building blocks to build effect XML reading/parsing code.
+
+## Key functions in `xml2`
+
+### For Reading XML Data
+
+Function | Description | Key Option | Option Description
+-----|-----|-----|-----
+`read_xml` | Accepts string, file path, or url argument. Returns XML data object | as_html = FALSE | Species whether to read as HTML
+`download_xml` | Accepts url argument. Downloads files to working directory. | file=basename(url) | Name to download file as
+. | . | mode="wb" | Write mode: 'w'(write), 'wb'(write binary), 'a'(append) 
+
+### For Navigating XML Tree Structure
+
+*All of the following functions accept an XML document, node, or node set as an argument*  
+
+Function | Description | Key Option | Option Description
+-----|-----|-----|-----
+`xml_children` | Returns list of elements downstream from current node | . | .
+`xml_child` | Returns list of `search`=1st element downstream from current node | `search`=1 | Species which child node
+`xml_parents` | Returns list of all parent elements from current node | . | .
+`xml_parent` | Returns list of parent elements one-level up from current node | . | .
+`xml_contents` | Returns list of contents from current node | . | .
+`xml_length` | Returns length of each element from current node | `only_elements`=TRUE | 
+`xml_root` | Returns the root node | . | . 
 
 
+### For Parsing XML Data
+
+Function | Description | Key Option | Option Description
+-----|-----|-----|-----
+`as_list` | Converts XML document or node set to equivalent R list | . | .
+
+### Discussion
+
+XML file reading 
+
+While the `xml2` package contains additional functions and the functions listed can contain additional arguments, for the sake of clarity and brevity, I have tried to list only the key functions and features. For more detailed information one can consult the `xml2` [online documentation](https://cran.r-project.org/web/packages/xml2/xml2.pdf).
 
 # Example XML Data Set
 
@@ -54,6 +89,11 @@ Both packages can accomplish the basic functions of reading and writing XML file
 ```{r load.data, warning=F, message=F}
 library(xml2)
 library(tidyverse) 
+library(knitr)
+
+
+# setting chunk options
+opts_chunk$set(warning=F, message=F)
 
 # https://catalog.data.gov/dataset?metadata_type=non-geospatial&res_format=XML&_groups_limit=0&page=3
 # Dataset Address: https://catalog.data.gov/dataset/regents-exam-results
@@ -69,7 +109,9 @@ xmlData <- read_xml("rows.xml")
 
 ## Identifying XML Data Structure
 
-Since XML file structure is arbitrary there is no function that can automate all the aspects of XML file reading. Instead, XML packages tend to come equipped with tools that allow one to interrogate the tree structure of the XML file and then use that information to parse out the information that is needed.
+
+
+
 
 ```{r id.structure}
 # identify XML structure
@@ -83,7 +125,8 @@ xml_length(level1)         # how many nodes are contained in each 1st level node
 level2 <- xml_children(level1)
 length(level2)             # number of nodes in 2nd level hierarchy
 xml_name(level2)[1]        # name of first node
-xml_length(level2)         # how many nodes are contained in each 2nd level node
+unique(xml_name(level2))   # all unique names in 2nd level (note: they are all the same)
+xml_length(level2)         # how many nodes are contained within each 2nd level node
 
 # 3rd level structure
 level3 <- xml_children(level2)
@@ -193,12 +236,168 @@ myData <- myData %>%
 Demographic data have overlapping categories, making it impossible to compare all the categories to each other simultaneously. It makes more sense to think of the demographic data separately into their complementary categories to the point where a natural next step is to segregate the different types of demographic data into separate, complementary data sets.
 
 ```{r get.subdatasets}
+# get subsets
 genderData <- filter(myData, demographic %in% c("Male", "Female"))
-raceData   <- filter(myData, demographic %in% c("Asian", "Black", "Hispanic", "white"))
-disData    <- filter(myData, demographic %in% c("Not Student with Disability",
-                                                "Student with Disability"))
-engData    <- filter(myData, demographic %in% c("English Language Learner",
-                                                "English Language Proficient"))
+raceData   <- filter(myData, demographic %in% c("Asian", "Black", "Hispanic", "White"))
+
+# define custom function - detectFixType
+# purpose: creates a total category from factor subsets and automatically sums cols
+#    e.g.: (gender=c("male", "female"), data=c(1,3)) appends row (gender="Total", data=4)
+#   takes 3 arguments - 
+#     - data frame with a factor column with subset categories (no total)
+#     - name of factor variable
+#     - key variables (e.g. cohort_year)
+#     - name(s) of columns to sum
+#   returns 1 argument 
+#     - data set with factor subset that includes total category + col sums
+getTotalFactor <- function(data, factorVar, keyCols, colsToSum){
+  # group data by keys, summarize to get total column sums
+  totalData <- genderData %>% 
+    group_by(.dots=keyCols) %>% 
+    summarize_at(colsToSum, sum) %>% 
+    mutate(!!factorVar := "Total")
+  
+  # fix levels of factor variables to allow merge
+  if(is.factor(data[[factorVar]])){
+    oldLevels <- levels(data[[factorVar]])
+    newLevels <- c(oldLevels, "Total")
+    levels(data[[factorVar]]) <- newLevels
+    totalData[[factorVar]]    <- factor(totalData[[factorVar]],
+                                        levels=newLevels)
+  }
+  
+  # merge data sets and return
+  full_join(data, totalData, by=c(factorVar, keyCols, colsToSum))
+}
+
+# Get total category for gender
+genderData <- getTotalFactor(genderData, 
+                           "demographic",
+                           c("cohort_year", "cohort_length"),
+                           c("total_cohort", "total_grads", "still_enrolled", "dropped_out"))
+
+# Get total category for race
+raceData   <- getTotalFactor(raceData, 
+                           "demographic",
+                           c("cohort_year", "cohort_length"),
+                           c("total_cohort", "total_grads", "still_enrolled", "dropped_out"))
+```
+
+```{r prepare.data}
+# define custom function - makeProportions
+#   purpose: get proportions based on count summaries in data frame
+#   takes 4 arguments - 
+#     - data frame 
+#     - name of col that contains total number of people
+#     - name of cols to make proportions of
+#     - prefix to use when naming new columns
+#   returns 1 argument 
+#     - data frame with proportion columns added
+makeProportions <- function(data, totalCol, otherCols, prefix="prop_"){
+  newColNames <- paste0(prefix, otherCols)
+  totalData   <- data[[totalCol]]
+  for(i in seq_along(otherCols)){
+    tempColName <- otherCols[i]
+    tempColData <- data[[tempColName]]
+    propData    <- tempColData/totalData
+    tempNewName <- newColNames[i] 
+    data[[tempNewName]] <- propData
+  }
+  return(data)
+}
+
+# add proportion variables to datasets
+genderData <- makeProportions(genderData, "total_cohort", c("total_grads", "still_enrolled", "dropped_out"))
+raceData   <- makeProportions(raceData,   "total_cohort", c("total_grads", "still_enrolled", "dropped_out"))
+propMyData <- makeProportions(myData,     "total_cohort", c("total_grads", "still_enrolled", "dropped_out"))
+
+# add percent missing from cohort
+genderData <- mutate(genderData, prop_missing=(1-prop_total_grads-prop_still_enrolled-prop_dropped_out))
+raceData   <- mutate(raceData, prop_missing=(1-prop_total_grads-prop_still_enrolled-prop_dropped_out))
+
+# get total data from gender data set
+totalData   <- filter(genderData, demographic=="Total")
+```
+
+```{r exploratory.data1}
+# contingency tables -- get counts (# of cohorts) per group
+t1 <- table(myData$cohort_year, myData$demographic)
+kable(t1)
+
+# contingency tables -- get counts of cohort years by cohort length
+t2 <- table(myData$cohort_year, paste0(round(myData$cohort_length,2)," Years"))
+kable(t2)
+```
+
+Equal representation by groups; expected and good to see. Different years are associated with different cohort lengths. Earlier years didn't have as many cohorts and it looks like later years might not have accrued enough time to obtain the data from cohort lengths.
+
+```{r exploratory.data2}
+# boxplot of proportion of all graduation rates by year (mixed length, demographics)
+ggplot(propMyData, aes(x=as.factor(cohort_year), y=prop_total_grads)) +
+  geom_boxplot(color="black", fill="blue") +
+  labs(title="Boxplot of Proportion Graduated by Year (Mixed Cohort Length/Demographics)",
+       x = "Cohort Year",
+       y = "Proportion of Graduates")
+
+# barplot of all graduation rates by cohort year by cohort length
+ggplot(totalData, aes(x=demographic, y=prop_total_grads)) + 
+  geom_bar(aes(fill=as.factor(round(cohort_length,1))), position="dodge", 
+           color="black", stat="identity") + 
+  facet_wrap(~cohort_year) +
+  labs(title="Barplot of Proportion Graduated by Cohort Year and Length",
+       x = "",
+       y = "Proportion of Graduates") +
+  scale_fill_discrete(name="Cohort Length")
+```
+
+At a glance, the box plot data is able to show a general trend of increasing total graduation rates over time. This is a positive sign that suggests improvement in education outcomes in the state. The breakdown of graduation rates by cohort year and cohort length show (as expected) that proportion of total graduated increased with longer cohort length. However, since previous results have shown that total graduation rates appear to be changing over time, and since cohort length appears to have different availability by years, it is probably best to control for cohort length to prevent possible confounding between cohort year and cohort length. As a result, further analysis will be restricted to only cohorts of length: 6 years.
+
+```{r exploratory.data3}  
+# subset to only 6 year cohort
+genderData6 <- genderData %>% filter(cohort_length==6)
+raceData6   <- raceData   %>% filter(cohort_length==6)
+
+# define custom function - plotDemoScatter
+#   purpose: plots scatter plot by demographic with curve fitting
+#   takes 5 arguments - 
+#     - data frame 
+#     - name of col that contains x-axis variable
+#     - name of cols that contains y-axis variable
+#     - character string for title for scatter plot
+#     - character string for y-axis label
+#   returns invisible data frame
+plotDemoScatter <- function(data, x, y, title, ylab){
+  ggplot(data, aes_string(x=x, y=y)) +
+    geom_point(aes(color=demographic)) + 
+    geom_smooth(aes(group=demographic, color=demographic)) + 
+    labs(title=title,
+         x = "Year",
+         y = ylab) +
+    scale_color_discrete(name="Demographic")
+  invisible(data)
+}
+
+# plot of missing over time by gender
+plotDemoScatter(genderData6, "cohort_year", "prop_missing", 
+                title="Proportion Missing after Year 6 by Gender",
+                ylab="Proportion Missing")
+
+# plot of missing over time by race
+plotDemoScatter(raceData6, "cohort_year", "prop_missing", 
+                title="Proportion Missing after Year 6 by Race",
+                ylab="Proportion Missing")
+```
+
+```{r make.figures}
+# gender scatter plot of total graduation proportion
+plotDemoScatter(genderData6, "cohort_year", "prop_total_grads", 
+                title="Proportion Graduated after Year 6 by Race",
+                ylab="Proportion of Graduates")
+  
+# race scatter plot of total graduate proportion
+plotDemoScatter(raceData6, "cohort_year", "prop_total_grads", 
+                title="Proportion Graduated after Year 6 by Race",
+                ylab="Proportion of Graduates")
 ```
 
 ## Exploratory Data Analysis  
@@ -213,3 +412,4 @@ engData    <- filter(myData, demographic %in% c("English Language Learner",
 
 # Discussion
 
+Further analysis could examine breakdowns of how disability and english-speaking status are also associated with graduation rates. 
