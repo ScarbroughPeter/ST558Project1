@@ -1,5 +1,5 @@
 ---
-title: ST558 - Project 1 - XML Data
+title: ST558 - Project 1 - XML Vignette
 author: Peter Scarbrough
 date: October 16, 2019
 output: 
