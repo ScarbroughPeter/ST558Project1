@@ -1,7 +1,7 @@
 ---
 title: ST558 - Project 1 - XML Data
 author: Peter Scarbrough
-date: October 15, 2019
+date: October 16, 2019
 output: 
   html_document:
     toc: true
@@ -12,7 +12,7 @@ output:
 
 # XML File Format  
 
-[XML](https://en.wikipedia.org/wiki/XML) (eXtensible Markup Language) is a standardized open-source data standard for sharing arbitrary data structures across the internet. It was developed in 1998 by the [World Wide Web Consortium](https://en.wikipedia.org/wiki/World_Wide_Web_Consortium). An XML file is a string of text where data are stored weakly typed (all as character values) and referenced (marked up) by tags (i.e. values enclose by brackets: < >). Similar to a JSON file, while XML white space does not contain data information, a general aspiration is to use whitespace to structure the XML file such that it is human-readable. Example:  
+[XML](https://en.wikipedia.org/wiki/XML) (eXtensible Markup Language) is a standardized open-source data standard for sharing arbitrary data structures across the internet. It was developed in 1998 by the [World Wide Web Consortium](https://en.wikipedia.org/wiki/World_Wide_Web_Consortium). An XML file is a string of text where data are stored weakly typed (all as character values) and referenced (marked up) by tags (i.e. values enclose by brackets: < >). Use of white space in an XML file is optional and mostly just to make it more readable by humans. An example of XML code is shown below:  
 
 ```{r eval=F}
 <Data>
@@ -27,7 +27,7 @@ output:
 <Data>
 ```
 
-XML files can represent something easily coerced into a 2D data set or they can be hierarchical, containing any amount of nested data structures. This makes them a convenient store of typical internet data but challenging to read and parse correctly. Because XML files are such a standard way of representing data, many API and sources of internet data will use the XML file format. There are many tutorials available on the web to learn more about XML: e.g. [w3schools.com](https://www.w3schools.com/xml/default.asp)
+XML files can represent something easily coerced into a 2D data set or they can be hierarchical, containing any amount of nested data structures. This makes them a convenient store of typical internet data, since they are easy to collect and share. However, this also makes XML files challenging to read and parse correctly. Because XML files are such a standard way of representing data, many API and sources of internet data will use the XML file format. There are many tutorials available on the web to learn more about XML: e.g. [w3schools.com](https://www.w3schools.com/xml/default.asp)
 
 # XML Packages in R
 
@@ -38,26 +38,26 @@ There are two main packages for reading XML files:
 
 Both packages can accomplish the basic functions of reading and writing XML files. `XML` is no longer actively maintained but has a larger selection of functions (mostly for internal operations) to aid in flexible parsing of XML files. The `xml2` package is still actively maintained and has a more consistent and modern R syntax with a smaller and more intuitive array of functions. It also has better memory management. Because of this, I have elected to use the `xml2` package for the following example.
 
-Since XML file structure is arbitrary there is no function that can automate all the aspects of XML file reading and parsing. Instead, XML packages come equipped with tools that allow one to interrogate the tree structure of the XML file and then use that information to parse out the information that is needed. Correspondingly, `xml2` comes equipped with functions that are generally light on features, performing mostly basic tasks with 0-2 key options. Instead, the user should familiarize themselves with the number of key functions that will act as tools and building blocks to build effect XML reading/parsing code.
+Since XML file structure is arbitrary there is no function that can automate all the aspects of XML file reading and parsing. Instead, XML packages come equipped with tools that allow one to interrogate the tree structure of the XML file and then use that information to parse out the information that is needed. Correspondingly, `xml2` comes equipped with functions that are generally light on features, performing mostly basic tasks with usually 0-2 key options. When wanting to read and parse XML files, one should familiarize themselves with many of these functions which will act as tools as part of a larger process.
 
 ## Key functions in `xml2`
 
 ### For Reading XML Data
 
-Function | Description | Key Option | Option Description
+Function | Description | Key Option=Default | Option Description
 -----|-----|-----|-----
-`read_xml` | Accepts string, file path, or url argument. Returns XML data object | as_html = FALSE | Species whether to read as HTML
+`read_xml` | Accepts string, file path, or url argument. Returns XML data object | as_html=FALSE | Species whether to read as HTML
 `download_xml` | Accepts url argument. Downloads files to working directory. | file=basename(url) | Name to download file as
 . | . | mode="wb" | Write mode: 'w'(write), 'wb'(write binary), 'a'(append) 
 
 ### For Navigating XML Tree Structure
 
-*All of the following functions accept an XML document, node, or node set as an argument*  
+*All of the following functions accept an XML document, node or node set as an argument*  
 
 Function | Description | Key Option | Option Description
 -----|-----|-----|-----
 `xml_children` | Returns list of elements downstream from current node | . | .
-`xml_child` | Returns list of `search`=1st element downstream from current node | `search`=1 | Species which child node
+`xml_child` | Returns list of 1st or `search`-specified element downstream from current node | `search`=1 | Specifies which child node to search
 `xml_parents` | Returns list of all parent elements from current node | . | .
 `xml_parent` | Returns list of parent elements one-level up from current node | . | .
 `xml_contents` | Returns list of contents from current node | . | .
@@ -71,9 +71,7 @@ Function | Description | Key Option | Option Description
 -----|-----|-----|-----
 `as_list` | Converts XML document or node set to equivalent R list | . | .
 
-### Discussion
-
-XML file reading 
+### Summary  
 
 While the `xml2` package contains additional functions and the functions listed can contain additional arguments, for the sake of clarity and brevity, I have tried to list only the key functions and features. For more detailed information one can consult the `xml2` [online documentation](https://cran.r-project.org/web/packages/xml2/xml2.pdf).
 
@@ -83,14 +81,16 @@ The following XML data set was found from a catalog of freely-available, public 
 
 ## Metadata  
 
-<u>Data</u>: **2005 - 2015 Graduation Outcomes**   
-<u>Filename</u>: "2005_-_2015_Graduation_Outcomes.csv"  
-<u>Publisher</u>: NYC OpenData [(data.cityofnewyork.us)](https://opendata.cityofnewyork.us/)  
-<u>Repository</u>: [https://catalog.data.gov](https://catalog.data.gov)   
-<u>URL</u>: [https://catalog.data.gov/dataset/regents-exam-results](https://catalog.data.gov/dataset/regents-exam-results)   
-<u>Download Date</u>: October 11, 2019  
-<u>Description</u>: Contains graduation outcome data from 2001-2015, classes 2005 through 2015. Cohorts and demographics of New York City students for each year are tracked over various cohort lengths. Total students, total numbers graudated, currently enrolled, or dropped out are recorded.  
-<u>Dimensinos</u>: 430 rows, 22 columns  
+Feature | Notes
+-----|-----
+Data | **2005 - 2015 Graduation Outcomes**   
+Filename | "rows.xml"  
+Publisher | NYC OpenData [(data.cityofnewyork.us)](https://opendata.cityofnewyork.us/)  
+Repository | [https://catalog.data.gov](https://catalog.data.gov)   
+URL | [https://catalog.data.gov/dataset/regents-exam-results](https://catalog.data.gov/dataset/regents-exam-results)   
+Download Date | October 11, 2019  
+Description | Contains graduation outcome data from 2001-2015, classes 2005 through 2015. Cohorts and demographics of New York City students for each year are tracked over various cohort lengths. Total students, total numbers graudated, currently enrolled, or dropped out are recorded.  
+Dimensinos | 430 rows, 22 columns  
 
 ## Variables  
 
@@ -119,6 +119,8 @@ of_cohort_still_enrolled | % of cohort Still Enrolled | Numeric
 dropped_out | # Dropped Out	| Numeric
 of_cohort_dropped_out | % of cohort Dropped Out | Numeric
 
+Special Notes: The data contain summary level measures for each demographic group. Demographic group contains race, gender, english-speaking, and disability information for student. Importantly, there is insufficient information to factor out different levels of demographic variables outside of the same feature (e.g. one can figure the measures for a cohort for whites and separately for a cohort for males, but the data can not be used to figure the measures for a cohort of white males). Thus, special care should be taken in manipulating and handling the demographic data.
+
 ## Loading the Data
 
 The XML file is downloaded to the working directory with `download_xml` and then opened using `read_xml`. Since this is just a standard XML file, the default options to both functions are acceptable.
@@ -143,7 +145,7 @@ xmlData <- read_xml("rows.xml")
 
 The `xmlData` object is still in a fairly raw data structure. What `read_xml` basically did was parse the tags in the character data to construct a hierarchical list of nodes containing either more nodes or data. The goal now is to investigate the structure of the data, figure out what it contains, and use that information to effectively parse it. 
 
-If a person was impatient or simply very familiar with R list objects and wanted to only know the bare minimum of the `xml2` package, they could drop the XML data object into the function `as_list` right now and return an R list object. A person could then investigate and parse the information from list to data frame. However, `xml2` contains function specifically designed to investigate XML file structure with a fairly intuitive set of functions; therefore, it often makes more sense to investigate the structure of XML object with these set of functions, and once that has been figured, drop the parts of the XML object that are needed into an R list and translate into a data frame from there. This is the approach that will be taken below:
+If a person was impatient or simply very familiar with R list objects and wanted to only know the bare minimum of the `xml2` package, they could drop the XML data object into the function `as_list` right now and return an R list object. A person could then investigate and parse the information from list to data frame. However, `xml2` contains fairly intuitive functions specifically designed to investigate XML file structure; therefore, it often makes more sense to investigate the structure of XML object with these set of functions, and once that has been figured, drop the parts of the XML object that are needed into an R list and translate into a data frame from there. This is the approach that will be taken below:
 
 ```{r id.structure}
 # identify XML structure
@@ -173,13 +175,13 @@ From this we can work out that the XML file has 3 nested levels:
 
 * 1st level: Root node: Contains set of rows       
 * 2nd level: 430 Rows: Each contains either 22 or 16 nodes (columns) each     
-* 3rd level: 9400: Column data for each row  
+* 3rd level: 9400 RowxColumn Cells: Data for each row x cell combination  
 
-From this we can figure our data is essentially a 2D data set with 430 rows and 22 columns of data. Some rows only have 16 columns of data, which reflects missing data. Now that we understand the data structure we can begin parsing the XML file into a data frame. The arbitrary structure of XML can make it tricky to parse into a data frame directly; fortunately, R comes equipped with an arbitrary data structure of its own: the list. This makes it straight-forward to dump the XML data into a familiar R object and then work it into a data frame based on what has been learned about its structure. 
+From this we can figure our data is essentially a 2D data set with 430 rows and 22 columns of data. Some rows only have 16 columns of data, which reflects missing data. Now that we understand the data structure we can begin parsing the XML file into a data frame.
 
 ## Converting XML Data to Data Frame
 
-Now that XML file structure has been figured, it is easy to drop the file object into `as_list` which will return an R list object. From there, the R list object can be manipulated into a data frame and then analysis performed per usual. In the cases, of very large XML files, it would be a good idea to only drop the necessary parts of the XML file into `as_list`. To do this, one would only need to further delve into the structure to figure out which nodes they want. Note: `as_list` would work just as well with `level3` as an argument as `xmlData`. However, in this case, since the XML data is relatively small, it doesn't hurt to just drop the entire XML object into `as_list`.
+Now that XML file structure has been figured, it is easy to drop the XML object into `as_list` which will return an R list object. From there, the R list object can be manipulated into a data frame and then analysis performed per usual. In the cases of very large XML files, it would be a good idea to only drop the necessary parts of the XML file into `as_list`. To do this, one would only need to further delve into the structure to figure out which nodes they want and then subset appropriately. Note: `as_list` would work just as well with `level3` as an argument as `xmlData`. However, in this case, since the XML data is relatively small, it doesn't hurt to just drop the entire XML object into `as_list`.
 
 ```{r convert.to.df}
 # Convert XML data to list
@@ -215,7 +217,9 @@ library(DT)
 datatable(head(myData), options = list(scrollX='400px'), filter = 'top')
 ```
 
-The data appear to ahve been parsed from the XML correctly. In the XML file, data are stored as characters, which is how they were read into the data frame. For the next step the data will be coerced into their correct types. To do this, a custom function will be created to detect data type and apply it to the data frame.
+## Fixing Data Types with Custom Function
+
+The data appear to have been parsed from the XML correctly. In the XML file, data are stored as characters, which is how they were read into the data frame. For the next step the data will be coerced into their correct types. To do this, a custom function will be created to detect data type and apply it to the data frame.
 
 ```{r correct.data.types}
 # define custom function - detectFixType
@@ -252,15 +256,15 @@ The XML data object has been successfully parsed into a data frame and the data 
 
 The goals of this analysis are to examine the relationship between demographic trends and graduation rate over time. Since this is a preliminary investigation, the approach will be simplified: data will be subset to only consider race and gender information at this stage, leaving other demographic information for a potential future investigation. As secondary investigations, the rates of high school dropping out will also be investigated as a function of demographic status over time.
 
-We will therefore consider the following variables of interest: Cohort year and graduation/drop out rates as quantiative (numeric) variables. And cohort_category and demographic data as categorical (factor) data. As a quality control check, a rate of missingness to follow-up variable will also be computed from the data and treated as an additional quantitative variable of interest.
+We will therefore consider the following variables of interest: Cohort year and graduation/drop out rates as **quantiative (numeric) variables**. And `cohort_category` and `demographic` data as **categorical (factor) variables**. As a quality control check, a rate of missingness to follow-up variable will also be computed from the data and treated as an additional quantitative variable of interest.
 
 ## Preparing the data
 
-## Getting Race and Gender Subsets
+### Getting Race and Gender Subsets
 
-Demographic data have overlapping categories, making it impossible to compare all the categories to each other simultaneously (i.e. there is no information in the data to suggest who is male and also white, or black and also female -- only single demographic data are present). As a result of these limitations, it makes more sense to think of the demographic data separately into their complementary categories to the point where a natural next step is to segregate the different types of demographic data into separate, complementary data sets. For the purpose of conducting a preliminary analysis, the data will be subsetted into the more familiar categories of race and gender
+Demographic data have overlapping categories, making it impossible to compare all the categories to each other simultaneously (i.e. there is no information in the data to suggest who is male and also white, or black and also female -- only single demographic data are present). As a result of these limitations, it makes more sense to think of the demographic data separately into their complementary categories to the point where a natural next step is to segregate the different types of demographic data into separate, complementary data sets. For the purpose of conducting a preliminary analysis, the data will be subsetted into the categories of race and gender
 
-In order to have a natural reference category for preliminary analysis, a total category of all genders combined or all races combined will be calculated and also included in the subsetted data.
+In order to have a natural reference category for preliminary analysis, a total category of all genders combined or all races combined will be calculated and also included in the subsetted data. This will be achieved through the creation of another custom function.
 
 ```{r get.subdatasets}
 # get subsets
@@ -312,7 +316,7 @@ raceData   <- getTotalFactor(raceData,
 
 ### Manually Calculate Proportions 
 
-Since the total sub-categories in the race and gender data sets do not have proportions already calculated (e.g. proportion of total grads), these proportions will be recalcuated and only the relevant variables relevant to the analysis will be included after this stage.
+Since the total sub-categories in the race and gender data sets do not have proportions already calculated (e.g. proportion of total grads), these proportions will be recalcuated.
 
 ```{r get.proportions.only}
 # define custom function - makeProportions
@@ -341,8 +345,11 @@ makeProportions <- function(data, totalCol, otherCols, prefix="prop_"){
 genderData <- makeProportions(genderData, "total_cohort", c("total_grads", "still_enrolled", "dropped_out"))
 raceData   <- makeProportions(raceData,   "total_cohort", c("total_grads", "still_enrolled", "dropped_out"))
 propMyData <- makeProportions(myData,     "total_cohort", c("total_grads", "still_enrolled", "dropped_out"))
+```
 
-# subset for data sets to only include variables of interest
+### Subsetting Data: Include Only Variables of Interest
+
+```{r include.only.vars.of.interest}
 genderData <- genderData %>%
   select("cohort_year", "cohort_category", "demographic", "total_grads", "still_enrolled", "dropped_out",
          "prop_total_grads", "prop_still_enrolled", "prop_dropped_out")
@@ -364,13 +371,20 @@ genderData <- mutate(genderData, prop_missing=(1-prop_total_grads-prop_still_enr
 raceData   <- mutate(raceData, prop_missing=(1-prop_total_grads-prop_still_enrolled-prop_dropped_out))
 ```
 
+Finally, the data will be printed to help ensure data preparation was handled correctly.
+
+```{r print.head.gender}
+# printing the header region of gender data
+datatable(genderData, options=list(scrollY="400px", scrollX="400px"))
+```
+
 ## Exploratory Data Analysis
 
-Since the data are summary-level (not individual-leve) exploratory data analysis will involve checking for group frequency counts through contingency tables, looking for balance and possible missing data. Next, plotting mixed group figures of graduation rates will be done to ascertain general trends in the data and look for any obvious problems.
+Since the data are summary-level (not individual-level) exploratory data analysis will involve checking for group frequency counts through contingency tables, looking for balance and possible missing data. Next, plotting mixed group figures of graduation rates will be done to ascertain general trends in the data and look for any obvious problems.
 
 ### Contingency Tables
 
-```{r exploratory.data1}
+```{r exploratory.data.contingency.tables}
 # contingency tables -- get counts (# of cohorts) per group
 t1 <- table(myData$cohort_year, myData$demographic)
 kable(t1)
@@ -380,17 +394,19 @@ t2 <- table(myData$cohort_year, myData$cohort_category)
 kable(t2)
 ```
 
-Equal representation by demographic groups is observed as expected. Interestingly, different years are associated with different cohort lengths. Earlier years didn't have as many cohorts and it looks like later years might not have accrued enough time to obtain the data from cohort lengths. While this is reasonable it suggests a possible source of bias in the study.
+Equal representation by demographic groups is observed as expected. Interestingly, different years are associated with different cohort lengths. Earlier years didn't have as many cohorts and it looks like later years might not have accrued enough time to obtain the data from cohort lengths. While this is reasonable it suggests one should carefully select cohort length during their analysis in order to prevent possible bias in findings.
 
 ### Barplots, Boxplots of General Trends
 
-```{r exploratory.data2}
-# boxplot of proportion of all graduation rates by year (mixed length, demographics)
+```{r exploratory.data.box.bar.plots}
+# boxplot of proportion of all graduation rates by year and cohort length (mixed demographics)
 ggplot(propMyData, aes(x=as.factor(cohort_year), y=prop_total_grads)) +
   geom_boxplot(color="black", fill="blue") +
+  facet_wrap(~cohort_category) +
   labs(title="Boxplot of Proportion Graduated by Year (Mixed Cohort Length/Demographics)",
        x = "Cohort Year",
-       y = "Proportion of Graduates")
+       y = "Proportion of Graduates") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 # get total data from gender data set
 totalData   <- filter(genderData, demographic=="Total")
@@ -406,13 +422,13 @@ ggplot(totalData, aes(x=demographic, y=prop_total_grads)) +
   scale_fill_discrete(name="Cohort Length")
 ```
 
-At a glance, the box plot data is able to show a general trend of increasing total graduation rates over time. This is a positive sign that suggests improvement in education outcomes in the state. The breakdown of graduation rates by cohort year and cohort length show (as expected) that proportion of total graduated increased with longer cohort length. However, since previous results have shown that total graduation rates appear to be changing over time, and since cohort length appears to have different availability by years, it is probably best to control for cohort length to prevent possible confounding between cohort year and cohort length. As a result, further analysis will be restricted to only cohorts of length: 6 years.
+At a glance, the box plot data is able to show a general trend of increasing total graduation rates over time. This is a positive sign that suggests improvement in education outcomes in the state. The breakdown of graduation rates by cohort year and cohort length show (as expected) that proportion of total graduated increased with longer cohort length. However, since previous results have shown that total graduation rates appear to be changing over time, and since cohort length appears to have different availability by years, it is probably best to control for cohort length to prevent possible confounding between cohort year and cohort length. *As a result, further analysis will be restricted to only cohorts of length: 6 years.*
 
 ### Controlling for Cohort Length
 
-Moving beyond exploratory data analysis, further analysis will be conducted restricted to a subset of only the 6 year cohort length studies in order to avoid potential bias among comoparisons of different cohort years.
+Moving beyond exploratory data analysis, further analysis will be conducted restricted to a subset of only the 6 year cohort length studies in order to avoid potential bias among comparisons of different cohort years.
 
-```{r exploratory.data3}  
+```{r exploratory.data.6year.restriction}  
 # subset to only 6 year cohort
 genderData6 <- genderData %>% filter(cohort_category=="6 Year")
 raceData6   <- raceData   %>% filter(cohort_category=="6 Year")
@@ -420,7 +436,7 @@ raceData6   <- raceData   %>% filter(cohort_category=="6 Year")
 
 ### Checking for Missing Data
 
-To check for a possible source of bias, the rates of missingness will be investigated (i.e. loss to follow-up) among cohort participants. The rates will be broken down by race to see if missingness may also provide some level of bias among the demographic variables.
+To check for a possible source of bias, the rates of missingness will be investigated (i.e. loss to follow-up) among cohort participants. The rates will be broken down by race to see if missingness may also provide some level of bias among the demographic variables. To handle repeated plotting of similar scatterplots, another custom function will be specified. Scatter plots of demograhpic by year for the indicated variables are shown. Curve fits (loess regression) with 95% confidence intervals are shown.
 
 ```{r check.for.missing}
 # define custom function - plotDemoScatter
@@ -428,7 +444,7 @@ To check for a possible source of bias, the rates of missingness will be investi
 #   takes 5 arguments - 
 #     - data frame 
 #     - name of col that contains x-axis variable
-#     - name of cols that contains y-axis variable
+#     - name of col that contains y-axis variable
 #     - character string for title for scatter plot
 #     - character string for y-axis label
 #   returns invisible data frame
@@ -458,12 +474,12 @@ Interestingly, even among those restricted to the 6-year cohort length, the leve
 
 ## Data Analysis
 
-After performing some exploratory data analysis, the end points of the study (graduation rates and drop out proportions) will be investigated. The following scatterplots will look at the variables, by race and gender separately, and among only participants in the 6-year cohort study.  
+After performing some exploratory data analysis, the end points of the study (graduation rates and drop out proportions) will be investigated. The following scatterplots will look at the variables, by race and gender separately, and among only participants in the 6-year cohort study. Scatter plots of demograhpic by year for the indicated variables are shown. Curve fits (loess regression) with 95% confidence intervals are shown. 
 
 ```{r make.figures}
 # gender scatter plot of graduate proportion
 plotDemoScatter(genderData6, "cohort_year", "prop_total_grads", 
-                title="Proportion Graduated after Year 6 by Race",
+                title="Proportion Graduated after Year 6 by Gender",
                 ylab="Proportion of Graduates")
   
 # race scatter plot of graduate proportion
@@ -473,17 +489,17 @@ plotDemoScatter(raceData6, "cohort_year", "prop_total_grads",
 
 # gender scatter plot of proportion of drop outs
 plotDemoScatter(genderData6, "cohort_year", "prop_dropped_out", 
-                title="Proportion Graduated after Year 6 by Race",
+                title="Proportion Dropped Out after Year 6 by Gender",
                 ylab="Proportion of Dropped Out")
   
 # race scatter plot of proportion of drop outs
 plotDemoScatter(raceData6, "cohort_year", "prop_dropped_out", 
-                title="Proportion Graduated after Year 6 by Race",
+                title="Proportion Dropped Out after Year 6 by Gender",
                 ylab="Proportion of Dropped Out")
 ```
 
 # Discussion
 
-As a whole, it appears that graduate rates are rising and drop out rates are falling among all groups. Fortunately, the improvements over time appear to be experienced by all demographic groups in what appears to be a fairly equal way. Unfortunately, it appears that men, black, and hispanics demographic groups are lagging behind in these metrics. Given the historically disadvantaged status of black and hispanic individuals in the US, this is an important result that may deserve additional elaboration. 
+As a whole, it appears that graduate rates are rising and drop out rates are falling among all groups. Fortunately, the improvements over time appear to be experienced by all demographic groups in what appears to be a fairly equal way. Unfortunately, it appears that men, black, and hispanics demographic groups are lagging behind in these metrics. Given the historically disadvantaged status of black and hispanic individuals in the US, this is an important result that may deserve additional investigation in these and other data. 
 
-As a future direction it would be interesting to do similar breakdowns by disability and english-speaking status. Given the lagging performance of minorities in graduation metrics, it seems likely that those who do not speak english as a first language would also be a particularly vulnerable group and would be likely to lag behind in other education metrics as well. Further follow-up could also investigate if the rate of graduation from cohort lengths year 4 to year 6 also differ between demographic groups. This would lend further evidence towards disparity in outcomes and also possibly add a further dimension to our understanding of this problem.
+As a future direction it would be interesting to do similar breakdowns by disability and english-speaking status. Given the lagging performance of minorities in graduation metrics, it seems likely that those who do not speak english as a first language would also be a particularly vulnerable group and would be likely to lag behind in other education metrics as well. Further follow-up could also investigate if the *rate of graduation* from cohort lengths year 4 to year 6 also differ between demographic groups. This would lend further evidence towards disparity in outcomes and also possibly add a further dimension to our understanding of this problem.
