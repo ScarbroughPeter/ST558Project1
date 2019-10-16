@@ -90,7 +90,8 @@ Repository | [https://catalog.data.gov](https://catalog.data.gov)
 URL | [https://catalog.data.gov/dataset/regents-exam-results](https://catalog.data.gov/dataset/regents-exam-results)   
 Download Date | October 11, 2019  
 Description | Contains graduation outcome data from 2001-2015, classes 2005 through 2015. Cohorts and demographics of New York City students for each year are tracked over various cohort lengths. Total students, total numbers graudated, currently enrolled, or dropped out are recorded.  
-Dimensinos | 430 rows, 22 columns  
+Source | Public Government Records   
+Dimensions | 430 rows, 22 columns  
 
 ## Variables  
 
@@ -214,7 +215,7 @@ for(row in 1:nRows){
 
 # Print part of data frame for Q/C check
 library(DT)
-datatable(head(myData), options = list(scrollX='400px'), filter = 'top')
+datatable(head(myData), options = list(scrollY="400px", scrollX="400px"))
 ```
 
 ## Fixing Data Types with Custom Function
@@ -395,6 +396,20 @@ kable(t2)
 ```
 
 Equal representation by demographic groups is observed as expected. Interestingly, different years are associated with different cohort lengths. Earlier years didn't have as many cohorts and it looks like later years might not have accrued enough time to obtain the data from cohort lengths. While this is reasonable it suggests one should carefully select cohort length during their analysis in order to prevent possible bias in findings.
+
+### Summary of Numeric Data
+
+Since the data are already summary-level, only a basic summary function will be used to ascertain basic characteristics of the numeric data.
+
+```{r summary.numeric}
+# Overall numeric summaries of proportions
+dplyr::select(propMyData, contains("prop")) %>% 
+  sapply(summary) %>% 
+  round(2) %>%
+  kable()
+```
+
+The calculated proportions are within the expected range (0-1), show reasonable variability, and they contain no missing values at the summary-level.
 
 ### Barplots, Boxplots of General Trends
 

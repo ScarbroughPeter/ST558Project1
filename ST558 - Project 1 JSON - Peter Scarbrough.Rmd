@@ -1,7 +1,7 @@
 ---
 title: ST558 - Project 1 - JSON Vignette
 author: Peter Scarbrough
-date: October 15, 2019
+date: October 16, 2019
 output: 
   html_document:
     toc: true
@@ -12,9 +12,9 @@ output:
 
 # JSON File Format  
 
-The [JSON](https://en.wikipedia.org/wiki/JSON) file format was first created by Douglas Crockford in the early 2000s using [Javascript](https://en.wikipedia.org/wiki/JavaScript) for storing internet data. Eventually the file format became a standardized Javascript object and given Javascript's position as the *de facto* official scripting language of the internet, it wasn't long before JSON became one of the most widely used formats for sharing data by websites and APIs (e.g. [Twitter API](https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json)). As a result, by now most programming languages have packages that allow the reading and creation of JSON files.  
+The [JSON](https://en.wikipedia.org/wiki/JSON) file format was first created by Douglas Crockford in the early 2000s using [Javascript](https://en.wikipedia.org/wiki/JavaScript) as a means for storing internet data. Eventually the file format became a standardized Javascript object and given Javascript's position as the *de facto* official scripting language of the internet, it wasn't long before JSON became one of the most widely used formats for sharing data by websites and APIs (e.g. [Twitter API](https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json)). As a result, by now most programming languages have packages that allow the reading and creation of JSON files.  
 
-The JSON is a hierarchical data format that may be used as an alternative to [XML](https://en.wikipedia.org/wiki/XML). In this format, data are stored with key-value pairs using [strong typing](https://en.wikipedia.org/wiki/Strong_and_weak_typing). Strong typing basically means the variables are defined as having a type (e.g. integer, character) and once they are defined with a type they keep that type. The key-value pairing is a convenient and intuitive use of syntax to define the values for a variable. These features of JSON contrast with the XML file format which defines data using tags and employs weak-typing. This makes JSON an alternative to XML that is generally easier to work with.
+The JSON file format is a hierarchical data format that may be used as an alternative to [XML](https://en.wikipedia.org/wiki/XML). In this format, data are stored with key-value pairs using [strong typing](https://en.wikipedia.org/wiki/Strong_and_weak_typing). Strong typing basically means the variables are defined as having a type (e.g. integer, character) and once they are defined with a type they keep that type. The key-value pairing is a convenient and intuitive use of syntax to define the values for a variable. These features of JSON contrast with the XML file format which defines data using tags and employs weak-typing. In general, this makes JSON a little easier to work with than XML.
 
 JSON files can represent a simple 2D data set.
 
@@ -26,7 +26,7 @@ JSON files can represent a simple 2D data set.
     "occupation": "Sith Lord"  
   },  
   {  
-    "name": Luke Skywalker"  
+    "name": "Luke Skywalker"  
     "age": 40  
     "occupation": "Jedi Master"  
   }  
@@ -100,8 +100,9 @@ Filename | "games.json"
 Repository | [kaggle](https://www.kaggle.com)  
 URL | [https://www.kaggle.com/beastovest/gog-games-with-reviews](https://www.kaggle.com/beastovest/gog-games-with-reviews)   
 Download Date | October 10, 2019  
-Description | This data set is a collection of player and critic review data for computer video games (along with meta information about these games) from the website: www.gog.com. [GOG](https://www.gog.com) is a website where people can purchase and download computer games from a variety genres and publishers. Their catelog of video games spans many hundreds of titles released over the last few decades.  
-Dimensinos | 2742 rows, 23 columns  
+Description | This data set is a collection of player and critic review data for computer video games (along with meta information about these games) from the website: www.gog.com. [GOG](https://www.gog.com) is a website where people can purchase and download computer games from a variety genres and publishers. Their catelog of video games spans many hundreds of titles released over the last few decades.
+Source | Web-scraping of GOG.com  
+Dimensions | 2742 rows, 23 columns  
 
 ## Variables
 
@@ -130,6 +131,8 @@ In Development | in_development | In Development | logical
 Languages | languages | Supported Languages | 3 item data frame  
 Achievements | achievements | Achievements In Game | 3 item data frame
 Reviews | reviews | Player Reviews | 8 item data frame  
+
+## Nested Data Structures
 
 ### Languages
 
@@ -162,9 +165,7 @@ Content | content | Full Text Review | character
 
 ## Loading the Data
 
-The data will be loaded using the `fromJSON` function from the `jsonlite` package. This function uses the same read-in function name as `rjson` and `RJSONIO` which allows users to more easily reuse code even if they are switching packages. The function contains the required argument `txt` which must specify either raw JSON text or a path to a JSON file. The `fromJSON` function also offers more *features* that the `read_json` function which allow for control over how the JSON object is simplified: 
-
-
+The data will be loaded using the `fromJSON` function from the `jsonlite` package. This function uses the same read-in function name as `rjson` and `RJSONIO` which allows users to more easily reuse code even if they are switching packages. The function contains the required argument `txt` which must specify either raw JSON text or a path to a JSON file. The `fromJSON` function also offers more *features* that the `read_json` function which allow for control over how the JSON object is simplified. However, since these data appear safe to simplify and `read_json` does not simplify by default, this is another reason to use the `fromJSON` function in this case.
 
 ### Using `fromJSON`
 
@@ -183,7 +184,7 @@ myData <- fromJSON("games.json")
 
 ### Checking Structure
 
-Now that the data is loaded, it's a good idea to check the structure of the data to make sure it loaded correctly and looks like how we expect.
+Once loaded, the data is checked for being correctly loaded and looking as expected. The first few rows of data are printed and the size of each column in the data set is calculated.
 
 ```{r check structure}
 # Print a few rows of the data to inspect structure, ensure properly loaded
@@ -194,7 +195,7 @@ datatable(head(myData), options = list(scrollY="400px", scrollX='400px'))
 sapply(myData, function(x) format(object.size(x), units="Mb"))
 ```
 
-As we can see, the data appear to have loaded correctly and seem to contain expected information. As expected, the JSON data is far from tidy, containing various nested data structures. It would be possible to tidy the entire dataset, but we will consider our analysis goals first in order to determine exactly what data we need to tidy, in order to make sure we don't waste our time. Note that most of the file size is only due to 2 columns: achievements and reviews. These are due to nested data frames that contain large amounts of text (not shown). 
+As we can see, the data appear to have loaded correctly and seem to contain expected information. As expected, the JSON data is far from tidy, containing various nested data structures (e.g. `genres`). It would be possible to tidy the entire dataset, but we will consider our analysis goals first in order to determine exactly what data we need to tidy, in order to make sure we don't waste our time. Note that most of the file size is only due to 3 columns: `languages`, `achievements` and `reviews`. These are due to nested data frames that contain large amounts of text (not shown). 
 
 # Analysis of JSON Data
 
@@ -202,11 +203,11 @@ As we can see, the data appear to have loaded correctly and seem to contain expe
 
 ## Analysis Goals
 
-Determine how player ratings change as a function of genre, price, and publisher. Whether a game is single or multiplayer will also be considered. In particular there is interest in constructing some multivariate plots to look at possible interactions bewteen player ratings and the indicated variables. Since there are many categories of publisher and genre, this preliminary analysis will focus on a simplified approach that restricts analysis only the top 5 gaming genres and top 15 game publishers.
+Determine how player ratings change as a function of genre, price, and publisher. Essentially this is to investigate what factors may influence consumer satisfaction. Whether a game is single or multiplayer will also be considered. Multivariate plots will be constructed to look at possible interactions bewteen player ratings and the indicated variables. Since there are many categories of publisher and genre, this preliminary analysis will focus on a simplified approach that restricts analysis only the top 5 gaming genres and top 15 game publishers. These cutoff points were chosen arbitrarily. 
 
 ## Preparing the data
 
-As a first step in preparing the data, I will remove all variables not of interest. This will keep player rating, price and publisher variables as well as the nested variable that contains information of which genre the game belongs to. 
+As a first step in preparing the data, I will remove all variables not of interest. This will keep player rating, price and publisher variables, the single- and multi-player indicator variables, as well as the nested variable that contains information of which genres the game belongs to. 
 
 ```{r trim.data}
 # ***trim data***
@@ -253,8 +254,9 @@ myData <- tidySimpleList(myData, "genres", prefix="genre")
 # (iv) remove nested data (genre column)
 myData <- select(myData, -genres)
 
-# (v) print results: note genre column now converted into logical indicator columns
-datatable(myData, options = list(scrollY="400px", scrollX='400px'))
+# (v) print first few rows of data to check results
+#     note genre column now converted into logical indicator columns
+datatable(head(myData), options = list(scrollY="400px", scrollX="400px"))
 ```
 
 For a preliminary analysis, there are probably too many genres categories to consider. Therefore, I will restrict further analysis to only the top 5 gaming genres. To do this, I will create a data table of genre sums, sort it, take the list of bottom genres and remove those genres from the main data table. This will include removing all the indicated genre indicator columns as well as any game from the data set that is not a member of at least one of the top 5 genres. 
@@ -287,7 +289,7 @@ myData <- myData %>%
   select(-top5Sums)
 ```
 
-Next, to further simplify this preliminary analysis into something more manageable, I will restrict further analysis to only consider data from the top 15 game publishers in the GOG.com data set. To do this, I will create a table of publisher counts, sort, store the bottom publisher data and finally use that data to trim the primary data set.
+Next, to further simplify this preliminary analysis into something more manageable, I will restrict further analysis to only consider data from the top 15 game publishers in the GOG.com data set. To do this, I will create a table of publisher counts, sort, store the bottom publisher data and finally use that data to filter the primary data set.
 
 ```{r tidy.data.publishers}
 # (i) get counts of game by publisher
@@ -309,11 +311,11 @@ myData <- myData %>%
   filter(player_rating != -1 & price != -1)
 ```
 
-THe data has been prepared and is now ready for analysis. 
+The data have been prepared and are now ready for analysis. The final prepared data is shown below:
 
 ```{r prepared.data}
 # print of full, cleaned, tidy data set
-datatable(myData, options(scrollY="400px", scrollX="400px"))
+datatable(myData, options=list(scrollY="400px", scrollX="400px"))
 ```
 
 Now that the data have been cleaned and tidied, I will use this data and `ggplot2` in the next sections to conduct my preliminary analyses of the data. The goal will be to make some multivariate plots and try to draw preliminary inferences on what possible relationships might exist between player rating and other variables in data. 
@@ -362,11 +364,11 @@ ggplot(myData, aes(player_rating)) +
        y="Count")
 ```
 
-From these data we find that is a large variation in price and player rating. Player rating seems to be more of a skewed normal distribution, that price data, which appear multi-modal. On inspection, both of these features appear to make sense. Pricing should have certain expected price points for games that likely occur more frequently than others. Player rating will also have floor and ceiling effects due to the limits in scale (1-5) within the rating. 
+From these data we find that is a large variation in price and player rating. Player rating seems to be more of a skewed normal distribution than price data, which appears multi-modal. On inspection, both of these features appear to make sense. Pricing should have certain expected price points for games that likely occur more frequently than others, potentially explaining multi-modality. Player rating will also have floor and ceiling effects due to the limits in scale (1-5) within the rating, which likely explains the skewness in distribution. 
 
 ### Categorical Variables
 
-Single variable and contingency tables will be used to asses the counts for each level of the categorical variables in the data.
+Single-variable tables and contingency tables will be used to asses the counts for each level of the categorical variables in the data.
 
 ```{r exp.data2}
 # (i) exploratory analysis - variables treated as categorical
@@ -419,7 +421,7 @@ ggplot(res, aes(x=Genre)) +
 
 From these data we observe that top publishers tend to have reasonably diversified catelogs of game portfolios (appealing to multiple different genres), which makes sense given probable business needs. However, publishers appear to have specializations and differing distributions overall which suggests possible concern for confounding when attempting to relate player rating to either publisher or genre alone. 
 
-Another interesting observation is that the contingency table of single-player versus multi-player games revealed that the GOG.com catelog of games offers no games that are exclusively multi-player after applying our filters to the data. Therefore, it makes sense to only focus on the `multi_player` variable as a lone contrast, since all games in this set of data appear to at least have a single-player component. This analysis strategy will be reflected by modification to the factor as shown below:
+Another interesting observation is that the contingency table of single-player versus multi-player games revealed that the GOG.com catalog of games offers no games that are exclusively multi-player after applying our filters to the data. Therefore, it makes sense to only focus on the `multi_player` variable as a lone contrast, since all games in this set of data appear to at least have a single-player component. This analysis strategy will be reflected by modification to the factor as shown below:
 
 ```{r multiplayer.mod}
 myData$multi_player <- factor(myData$multi_player,
@@ -429,7 +431,7 @@ myData$multi_player <- factor(myData$multi_player,
 
 ## Analysis: Interactions with Player Rating
 
-Since we are primarily interested in player rating as a response variable, the following breakdowns were made by player_rating to examine what kinds of direct effects on player rating may exist in the data set. To get 2-way data for the genre variable (currently spread out across logical columns), I will create a custom function, which returns the relevant data frame.
+Since I am primarily interested in player rating as a response variable, the following breakdowns were made by `player_rating` to examine what kinds of direct effects on player rating may exist in the data set. To get 2-way data for the genre variable (currently spread out across logical columns), I will create a custom function, which returns the relevant data frame. This essentially lengthens the data set using the genre logical columns by the indicated column(s) of data.
 
 ```{r helper.function}
 # will lengthen data by colNames key only if TRUE using targetCol values
@@ -483,7 +485,8 @@ ggplot(myData, aes(x=publisher, y=player_rating)) +
    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
 
 # (iia) box_plots: player rating by genre
-# note: observations have dependencies -- interpret with caution
+# note: observations have dependencies, genres are not independent observations
+#       interpret with caution
 ratingGenre <- longFromLogicals(myData, topGenres, c("player_rating", "multi_player"), key="genre")
 ggplot(ratingGenre, aes(x=as.factor(genre), y=player_rating)) + 
   geom_boxplot(color="black", fill="blue") + 
@@ -493,7 +496,8 @@ ggplot(ratingGenre, aes(x=as.factor(genre), y=player_rating)) +
   scale_x_discrete(labels=genreNames)
 
 # (iib) box_plots: player rating by genre, broken down by multiplayer
-# note: observations have dependencies -- interpret with caution
+# note: observations have dependencies, genres are not independent observations
+#       interpret with caution
 ggplot(ratingGenre, aes(x=as.factor(genre), y=player_rating)) + 
   geom_boxplot(color="black", fill="blue") + 
   facet_wrap(multi_player~.) +
@@ -512,6 +516,8 @@ ggplot(myData, aes(x=player_rating, y=price)) +
        y="Price")
   
 # (iv) scatterplot: of price x player_rating by (panel/color) genre
+# note: observations have dependencies, genres are not independent observations
+#       interpret with caution
 priceRatingGenre <- longFromLogicals(myData, topGenres, c("price", "player_rating"), key="genre")
 ggplot(priceRatingGenre, aes(x=player_rating, y=price)) + 
   geom_point(aes(color=as.factor(genre)), alpha=0.3) + 
@@ -528,11 +534,11 @@ ggplot(priceRatingGenre, aes(x=player_rating, y=price)) +
 Analysis of multivariate associations with player ratings sought to determine what variables might have important or interesting associations with the perceptions consumers have on their video game purchases. From these plots several features appear to be worth mentioning: 
 
 * There is very little apparent variation in player ratings by genre. Although one would expect not every genre to appeal to every player, this likely suggests that people who are purchasing video games tend to have a fairly good idea of what they will like and what they won't.  
-* The breakdown by multi-player and genre shows an interesting feature where adventure games appear to have a noticeable drop-off compared to other categories. Since adventure games tend to be thematically single-player this could reflect the injection of an incompatible design choice into an incompatible genre.  
+* The breakdown by multi-player and genre shows an interesting feature where adventure games appear to have a noticeable drop-off compared to other categories. Since adventure games tend to be thematically single-player this could reflect the injection of a design choice into an incompatible genre.  
 * In contrast to genre, there appears to be more significant variation in player rating by publisher. This makes sense as different publishers have different levels of resources and talent at their disposal. This evidence suggests this may make a significant impact on consumer satisfaction.  
-* One result that seemed particularly surprising was a fairly flat (no strongly observed) association between pricing and player rating of the video game. It was expected that consumers might be harder on more expensive titles that don't reward as high quality of an experience and more lenient on cheaper budget titles. One hypothesis to explain the null finding is that the flat association could be evidence that GOG.com is setting price points efficiently in order to achieve the desired balance of consumer satisfaction.  
-* When broken down by genre, price, and player rating, role-playing games seem to have the highest level of variation in price and player rating. In the combined scatterplot, there also appears to be some stronger evidence of a possible positive correlation between price and player rating. This potentially high variation may indicate the presence of other confounding variables which may obscure some trend in price. 
+* One result that seemed particularly surprising was a fairly flat (no strongly observed) association between pricing and player rating of the video game. It was expected that consumers might be harder on more expensive titles that don't reward as high quality of an experience and more lenient on cheaper budget titles. One hypothesis to explain the null finding is that the flat association could be evidence that GOG.com is setting price points efficiently in order to achieve the desired balance of profit to consumer satisfaction.  
+* When broken down by genre, price, and player rating, role-playing games seem to have the highest level of variation in price and player rating (see scatter plot). In the combined scatterplot, there also appears to be some stronger evidence of a possible positive correlation between price and player rating. This potentially high variation may indicate the presence of other confounding variables which may obscure some relationship between price and player rating. 
 
 Overall, the investigation into player rating (a surrogate measure of consumer satisfaction) was able to find at least one strong lead for further investigation. In particular, game publisher seemed to show the strongest variation with player rating and appears to so far be the strongest predictor worth investigating further. Potentially simple underlying explanations (e.g. differences in resources, talent) also make it an attractive starting point for further investigation.
 
-Some ideas for further investigation could be to include video game date of publish, since the quality of video game publishers may change considerably over time. GOG.com sales retro as well as modern games, which may have radically different flavors of consumer reception. It may also be interesting to dig deeper into the genre and publisher associations with player ratings to see if publishers tend to do well in all genres they produce, or if they tend to perform particularly well in just one or two genres. Exploratory data analysis suggests that publishers some publishers may tend to specialize and therefore it is speculated that much of the between-publisher differences in player rating may occur in their areas of specialization. Adding all publishers from the original data set may also provide further insights and help resolve other potential interactions.
+Some ideas for further investigation could be to include video game date of publish, since the quality of video game publishers may change considerably over time. Also, GOG.com sells retro as well as modern games, which may have radically different flavors of consumer reception, so adding date data may help test hypotheses in this area as well. It may also be interesting to dig deeper into the genre and publisher associations with player ratings to see if publishers tend to do well in all genres they produce, or if they tend to perform particularly well in just one or two genres. Exploratory data analysis suggests that some publishers tend to specialize and therefore it is speculated that much of the between-publisher differences in player rating may occur in their areas of specialization. Finally, it is believe that further analysis could begin including all publishers from the original data set in order to provide further insights and possibly help resolve other potential interactions.
